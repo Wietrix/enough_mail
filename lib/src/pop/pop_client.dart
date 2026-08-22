@@ -25,14 +25,19 @@ class PopClient extends ClientBase {
   /// The handler receives the [X509Certificate], and can inspect it and decide
   /// (or let the user decide) whether to accept the connection or not.
   /// The handler should return true to continue the [SecureSocket] connection.
+  ///
+  /// [securityContext] is an optional [SecurityContext] for the TLS
+  /// connection, mirroring [ImapClient] and [SmtpClient].
   PopClient({
     bool isLogEnabled = false,
     String? logName,
     bool Function(X509Certificate)? onBadCertificate,
+    SecurityContext? securityContext,
   }) : super(
          isLogEnabled: isLogEnabled,
          logName: logName,
          onBadCertificate: onBadCertificate,
+         securityContext: securityContext,
        );
 
   /// Allows listening to events fired by this [PopClient].

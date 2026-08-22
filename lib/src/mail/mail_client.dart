@@ -45,6 +45,17 @@ class MailClient {
   /// Specify the optional [downloadSizeLimit] in bytes to only download
   /// messages automatically that are this size or lower.
   ///
+  /// [securityContext] is an optional [SecurityContext] for the TLS
+  /// connections of the incoming and outgoing clients.
+  ///
+  /// Combined with [onBadCertificate] this makes certificate pinning possible
+  /// on the connection that actually carries the credentials: a context built
+  /// with `withTrustedRoots: false` leaves every certificate unverified, so
+  /// [onBadCertificate] is consulted on every connection and can accept
+  /// exactly one. Without it, pinning is only possible on a separate probe
+  /// connection, which an attacker holding a CA-valid certificate can let
+  /// pass before taking over the real one.
+  ///
   /// [onBadCertificate] is an optional handler for unverifiable certificates.
   /// The handler receives the [X509Certificate], and can inspect it and decide
   /// (or let the user decide) whether to accept the connection or not.
@@ -67,6 +78,7 @@ class MailClient {
     this.defaultWriteTimeout = const Duration(seconds: 2),
     this.defaultResponseTimeout = const Duration(seconds: 5),
     bool Function(X509Certificate)? onBadCertificate,
+    SecurityContext? securityContext,
     this.clientId,
     Future<OauthToken?> Function(MailClient client, OauthToken expiredToken)?
     refresh,
@@ -87,6 +99,7 @@ class MailClient {
         this,
         isLogEnabled: _isLogEnabled,
         onBadCertificate: onBadCertificate,
+        securityContext: securityContext,
       );
     } else if (config.serverConfig.type == ServerType.pop) {
       _incomingMailClient = _IncomingPopClient(
@@ -96,6 +109,7 @@ class MailClient {
         this,
         isLogEnabled: _isLogEnabled,
         onBadCertificate: onBadCertificate,
+        securityContext: securityContext,
       );
     } else {
       throw InvalidArgumentException(
@@ -117,6 +131,7 @@ class MailClient {
       outgoingConfig,
       isLogEnabled: _isLogEnabled,
       onBadCertificate: onBadCertificate,
+      securityContext: securityContext,
     );
   }
 
@@ -1802,10 +1817,12 @@ class _IncomingImapClient extends _IncomingMailClient {
     MailClient mailClient, {
     required bool isLogEnabled,
     bool Function(X509Certificate)? onBadCertificate,
+    SecurityContext? securityContext,
   }) : _imapClient = ImapClient(
          isLogEnabled: isLogEnabled,
          logName: logName,
          onBadCertificate: onBadCertificate,
+         securityContext: securityContext,
          defaultWriteTimeout: defaultWriteTimeout,
          defaultResponseTimeout: defaultResponseTimeout,
        ),
@@ -3229,10 +3246,12 @@ class _IncomingPopClient extends _IncomingMailClient {
     MailClient mailClient, {
     required bool isLogEnabled,
     bool Function(X509Certificate)? onBadCertificate,
+    SecurityContext? securityContext,
   }) : _popClient = PopClient(
          isLogEnabled: isLogEnabled,
          logName: logName,
          onBadCertificate: onBadCertificate,
+         securityContext: securityContext,
        ),
        super(downloadSizeLimit, config, mailClient);
 
@@ -3566,11 +3585,13 @@ class _OutgoingSmtpClient extends _OutgoingMailClient {
     MailServerConfig mailConfig, {
     required bool isLogEnabled,
     bool Function(X509Certificate)? onBadCertificate,
+    SecurityContext? securityContext,
   }) : _smtpClient = SmtpClient(
          outgoingClientDomain,
          isLogEnabled: isLogEnabled,
          logName: logName,
          onBadCertificate: onBadCertificate,
+         securityContext: securityContext,
        ),
        super(mailConfig: mailConfig);
 
