@@ -2119,7 +2119,19 @@ class _IncomingImapClient extends _IncomingMailClient {
       isSecure: isSecure,
       timeout: timeout,
     );
-    if (!isSecure) {
+    if (serverConfig.socketType == SocketType.starttls) {
+      // Required, not opportunistic: the capability list arrives in the
+      // clear, so a man in the middle could strip STARTTLS from it and have
+      // the credentials sent unencrypted. Many servers also leave the
+      // capabilities out of the greeting altogether.
+      await _imapClient.startTls();
+      if (!_imapClient.isConnectionSecure) {
+        throw MailException(
+          mailClient,
+          'STARTTLS failed for ${serverConfig.hostname}, refusing to log in',
+        );
+      }
+    } else if (!isSecure) {
       if (_imapClient.serverInfo.supportsStartTls &&
           (serverConfig.socketType != SocketType.plainNoStartTls)) {
         await _imapClient.startTls();
@@ -3614,7 +3626,16 @@ class _OutgoingSmtpClient extends _OutgoingMailClient {
           isSecure: isSecure,
         );
         await _smtpClient.ehlo();
-        if (!isSecure) {
+        if (config.socketType == SocketType.starttls) {
+          // Required, not opportunistic — see the IMAP connect().
+          await _smtpClient.startTls();
+          if (!_smtpClient.isConnectionSecure) {
+            throw SmtpException.message(
+              _smtpClient,
+              'STARTTLS failed for ${config.hostname}, refusing to log in',
+            );
+          }
+        } else if (!isSecure) {
           if (_smtpClient.serverInfo.supportsStartTls &&
               (config.socketType != SocketType.plainNoStartTls)) {
             await _smtpClient.startTls();

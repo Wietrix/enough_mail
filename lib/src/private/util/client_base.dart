@@ -75,6 +75,12 @@ abstract class ClientBase {
   /// Ist the client currently connected?
   bool get isConnected => _isConnected;
 
+  /// Is the current connection encrypted?
+  ///
+  /// Unlike [ConnectionInfo.isSecure], which records how the connection was
+  /// opened, this also reflects a completed STARTTLS upgrade.
+  bool get isConnectionSecure => _socket is SecureSocket;
+
   /// Handles unverifiable certificates.
   ///
   /// The handler receives the [X509Certificate], and can inspect it and decide
